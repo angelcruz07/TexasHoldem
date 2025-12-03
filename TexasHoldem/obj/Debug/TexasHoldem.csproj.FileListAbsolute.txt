@@ -1,0 +1,22 @@
+C:\Users\Angel\OneDrive\Documentos\Programación Visual\TexasHoldem\TexasHoldem\bin\Debug\TexasHoldem.exe.config
+C:\Users\Angel\OneDrive\Documentos\Programación Visual\TexasHoldem\TexasHoldem\bin\Debug\TexasHoldem.exe
+C:\Users\Angel\OneDrive\Documentos\Programación Visual\TexasHoldem\TexasHoldem\bin\Debug\TexasHoldem.pdb
+C:\Users\Angel\OneDrive\Documentos\Programación Visual\TexasHoldem\TexasHoldem\obj\Debug\TexasHoldem.csproj.AssemblyReference.cache
+C:\Users\Angel\OneDrive\Documentos\Programación Visual\TexasHoldem\TexasHoldem\obj\Debug\TexasHoldem.Form1.resources
+C:\Users\Angel\OneDrive\Documentos\Programación Visual\TexasHoldem\TexasHoldem\obj\Debug\TexasHoldem.Properties.Resources.resources
+C:\Users\Angel\OneDrive\Documentos\Programación Visual\TexasHoldem\TexasHoldem\obj\Debug\TexasHoldem.csproj.GenerateResource.cache
+C:\Users\Angel\OneDrive\Documentos\Programación Visual\TexasHoldem\TexasHoldem\obj\Debug\TexasHoldem.csproj.CoreCompileInputs.cache
+C:\Users\Angel\OneDrive\Documentos\Programación Visual\TexasHoldem\TexasHoldem\obj\Debug\TexasHoldem.exe
+C:\Users\Angel\OneDrive\Documentos\Programación Visual\TexasHoldem\TexasHoldem\obj\Debug\TexasHoldem.pdb
+C:\Users\Angel\OneDrive\Documentos\Programación Visual\TexasHoldem\TexasHoldem\obj\Debug\TexasHoldem.exe.config
+C:\Users\Angel\OneDrive\Documentos\Programación Visual\TexasHoldem\TexasHoldem\obj\Debug\TexasHoldem.MesaDeJuegoForm.resources
+C:\Users\Angel\OneDrive\Documentos\Programación Visual\TexasHoldem\TexasHoldem\obj\Debug\TexasHoldem.SplashForm.resources
+C:\Users\Angel\OneDrive\Documentos\TexasHoldem\TexasHoldem\obj\Debug\TexasHoldem.csproj.AssemblyReference.cache
+C:\Users\Angel\OneDrive\Documentos\TexasHoldem\TexasHoldem\obj\Debug\TexasHoldem.exe.config
+C:\Users\Angel\OneDrive\Documentos\TexasHoldem\TexasHoldem\obj\Debug\TexasHoldem.MesaDeJuegoForm.resources
+C:\Users\Angel\OneDrive\Documentos\TexasHoldem\TexasHoldem\obj\Debug\TexasHoldem.Properties.Resources.resources
+C:\Users\Angel\OneDrive\Documentos\TexasHoldem\TexasHoldem\obj\Debug\TexasHoldem.SplashForm.resources
+C:\Users\Angel\OneDrive\Documentos\TexasHoldem\TexasHoldem\obj\Debug\TexasHoldem.csproj.GenerateResource.cache
+C:\Users\Angel\OneDrive\Documentos\TexasHoldem\TexasHoldem\obj\Debug\TexasHoldem.csproj.CoreCompileInputs.cache
+C:\Users\Angel\OneDrive\Documentos\TexasHoldem\TexasHoldem\obj\Debug\TexasHoldem.exe
+C:\Users\Angel\OneDrive\Documentos\TexasHoldem\TexasHoldem\obj\Debug\TexasHoldem.pdb
