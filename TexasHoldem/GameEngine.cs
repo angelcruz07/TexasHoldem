@@ -123,7 +123,14 @@ namespace TexasHoldem
                     if (CurrentBet != player.CurrentBet)
                     {
                         // Invalid action, should call instead
-                        return;
+                        // Mostrar mensaje de error pero no procesar la acción
+                        System.Windows.Forms.MessageBox.Show(
+                            "No puedes pasar. Debes igualar la apuesta actual primero.", 
+                            "Acción Inválida", 
+                            System.Windows.Forms.MessageBoxButtons.OK, 
+                            System.Windows.Forms.MessageBoxIcon.Warning);
+                        UpdateUI(); // Actualizar UI aunque la acción sea inválida
+                        return; // No avanzar turno si la acción es inválida
                     }
                     _playersActedInRound++;
                     break;
@@ -140,7 +147,13 @@ namespace TexasHoldem
                     if (amount <= CurrentBet)
                     {
                         // Invalid raise amount, debe ser mayor que CurrentBet
-                        return;
+                        System.Windows.Forms.MessageBox.Show(
+                            $"La apuesta debe ser mayor que ${CurrentBet}. La apuesta mínima es ${CurrentBet + 1}.", 
+                            "Apuesta Inválida", 
+                            System.Windows.Forms.MessageBoxButtons.OK, 
+                            System.Windows.Forms.MessageBoxIcon.Warning);
+                        UpdateUI(); // Actualizar UI aunque la acción sea inválida
+                        return; // No avanzar turno si la acción es inválida
                     }
                     int raiseDiff = amount - player.CurrentBet;
                     PlaceBet(player, raiseDiff);
@@ -317,12 +330,24 @@ namespace TexasHoldem
                 }
                 else
                 {
-                    // Empate - dividir el bote
+                    // Empate - dividir el bote equitativamente
                     int potPerPlayer = Pot / winners.Count;
+                    int remainder = Pot % winners.Count; // Fichas restantes por división entera
+                    
+                    // Distribuir la parte base del bote a todos los ganadores
                     foreach (var w in winners)
                     {
                         w.Player.Chips += potPerPlayer;
                     }
+                    
+                    // Distribuir el resto (si hay) a los primeros ganadores
+                    // Esto asegura que todas las fichas se distribuyan sin pérdida
+                    for (int i = 0; i < remainder; i++)
+                    {
+                        winners[i].Player.Chips += 1;
+                    }
+                    
+                    int totalDistributed = (potPerPlayer * winners.Count) + remainder;
                     string handName = bestHand.Hand.GetHandName();
                     string winnersNames = string.Join(", ", winners.Select(w => w.Player.Name));
                     OnRoundEnded?.Invoke(this, $"{winnersNames}|{potPerPlayer}|tie|{handName}");
