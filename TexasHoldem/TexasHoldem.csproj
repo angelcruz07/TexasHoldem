@@ -46,12 +46,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AIPlayer.cs" />
     <Compile Include="Card.cs" />
-    <Compile Include="HumanPlayer.cs" />
     <Compile Include="Deck.cs" />
     <Compile Include="GameEngine.cs" />
     <Compile Include="HandEvaluator.cs" />
-    <Compile Include="AIPlayer.cs" />
     <Compile Include="MesaDeJuegoForm.cs">
       <SubType>Form</SubType>
     </Compile>

@@ -25,5 +25,10 @@ namespace TexasHoldem
 
             this.Hide();
         }
+
+        private void SplashForm_Load(object sender, EventArgs e)
+        {
+
+        }
     }
 }

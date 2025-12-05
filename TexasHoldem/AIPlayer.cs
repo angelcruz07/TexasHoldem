@@ -1,28 +1,71 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace TexasHoldem
 {
     internal class AIPlayer : Player
     {
-        public AIPlayer(string name) : base(name) { }
+        private Random _random;
 
-        // Este es el corazón de la IA
-        public override PlayerAction GetAction()
+        public AIPlayer(string name, int startingChips) : base(name, startingChips)
         {
-            // Lógica de IA:
-            // 1. Si no hay cartas comunitarias, decide al azar (o siempre Check/Call).
+            _random = new Random();
+        }
 
-            // 2. Si ya hay cartas comunitarias (Flop/Turn/River):
-            //    a. LLAMA al HandEvaluator para ver su fuerza.
-            //    b. Si es una mano débil (Par o peor), decide Fold.
-            //    c. Si es una mano fuerte (Dos Pares o mejor), decide Check/Call.
+        // Lógica simple de IA: decide qué acción tomar basándose en probabilidades básicas
+        public string DecideAction(int currentBet, int pot, List<Card> communityCards)
+        {
+            // Si no hay apuesta que igualar, puede check o raise
+            if (currentBet == CurrentBet)
+            {
+                // Decisión: 70% check, 30% raise pequeño
+                if (_random.Next(100) < 70)
+                {
+                    return "check";
+                }
+                else
+                {
+                    return "raise";
+                }
+            }
+            else
+            {
+                // Hay apuesta que igualar
+                int callAmount = currentBet - CurrentBet;
+                
+                // Si la apuesta es muy alta comparada con sus fichas, más probabilidad de fold
+                double betRatio = (double)callAmount / Chips;
+                
+                if (betRatio > 0.5 && _random.Next(100) < 40)
+                {
+                    return "fold";
+                }
+                else if (betRatio < 0.2 || _random.Next(100) < 70)
+                {
+                    return "call";
+                }
+                else
+                {
+                    return "fold";
+                }
+            }
+        }
 
-            // Deberás implementar aquí la llamada al HandEvaluator y la lógica de decisión.
-            return PlayerAction.Check; // Placeholder
+        public int DecideRaiseAmount(int currentBet, int pot)
+        {
+            // Raise mínimo: 2x la apuesta actual o mínimo 40
+            int minRaise = Math.Max(currentBet * 2, 40);
+            int maxRaise = Math.Min(minRaise + 100, Chips);
+            
+            // Raise aleatorio entre min y max
+            if (maxRaise > minRaise)
+            {
+                return _random.Next(minRaise, maxRaise);
+            }
+            return minRaise;
         }
     }
 }
+
+
