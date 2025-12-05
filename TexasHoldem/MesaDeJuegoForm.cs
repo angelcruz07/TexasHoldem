@@ -22,6 +22,9 @@ namespace TexasHoldem
         private Button btnRaise;
         private List<PictureBox> communityCardPbs = new List<PictureBox>();
         private List<PictureBox> playerCardPbs = new List<PictureBox>();
+        
+        // Cache para la imagen de backcard (evita cargarla múltiples veces)
+        private static Image _cachedBackCardImage = null;
 
         public MesaDeJuegoForm()
         {
@@ -32,6 +35,9 @@ namespace TexasHoldem
 
         private void InitializeCustomComponents()
         {
+            // Suspender el layout para evitar múltiples redibujos
+            this.SuspendLayout();
+            
             // Setup Form
             this.Size = new Size(1024, 768);
             this.StartPosition = FormStartPosition.CenterScreen;
@@ -57,7 +63,7 @@ namespace TexasHoldem
                 pb.Size = new Size(cardWidth, cardHeight);
                 pb.Location = new Point(startX + (i * cardSpacing), startY);
                 pb.SizeMode = PictureBoxSizeMode.StretchImage;
-                pb.BackColor = Color.White; // Fondo blanco para PNGs
+                pb.Image = GetBackCardImage(); // Usar backcard.png como imagen inicial
                 pb.BorderStyle = BorderStyle.FixedSingle;
                 this.Controls.Add(pb);
                 communityCardPbs.Add(pb);
@@ -81,7 +87,7 @@ namespace TexasHoldem
             }
 
             // Labels - Esquina derecha en medio (un poco a la izquierda)
-            int rightSideX = this.ClientSize.Width; 
+            int rightSideX = this.ClientSize.Width - 200; // Movido 200 píxeles a la izquierda desde el borde derecho
             int rightSideY = this.ClientSize.Height / 2 - 150; // Centro vertical menos offset
             
             lblPot = new Label();
@@ -128,6 +134,10 @@ namespace TexasHoldem
             btnCheck = CreateButton("Pasar", btnStartX + 90 + btnSpacing, btnY, BtnCheck_Click);
             btnCall = CreateButton("Igualar", btnStartX + 2 * (90 + btnSpacing), btnY, BtnCall_Click);
             btnRaise = CreateButton("Subir", btnStartX + 3 * (90 + btnSpacing), btnY, BtnRaise_Click);
+            
+            // Reanudar el layout después de agregar todos los controles
+            this.ResumeLayout(false);
+            this.PerformLayout();
         }
 
         private Button CreateButton(string text, int x, int y, EventHandler onClick)
@@ -212,7 +222,7 @@ namespace TexasHoldem
         private void UpdateUI()
         {
             // Pot
-            lblPot.Text = $"Bote: ${_gameEngine.Pot} (Apuesta actual: ${_gameEngine.CurrentBet})";
+            lblPot.Text = $"Bot: ${_gameEngine.Pot} (Apuesta actual: ${_gameEngine.CurrentBet})";
 
             // Community Cards
             var community = _gameEngine.CommunityCards;
@@ -224,7 +234,7 @@ namespace TexasHoldem
                 }
                 else
                 {
-                    communityCardPbs[i].Image = null;
+                    communityCardPbs[i].Image = GetBackCardImage(); // Mostrar backcard cuando no hay carta
                 }
             }
 
@@ -292,6 +302,51 @@ namespace TexasHoldem
                 if (File.Exists(path))
                 {
                     return Image.FromFile(path);
+                }
+            }
+
+            return null; // Imagen no encontrada
+        }
+
+        private Image GetBackCardImage()
+        {
+            // Usar la imagen cacheada si ya existe
+            if (_cachedBackCardImage != null)
+            {
+                return _cachedBackCardImage;
+            }
+            
+            // Cargar la imagen de backcard.png desde assets/
+            string[] possiblePaths = new string[]
+            {
+                Path.Combine(Application.StartupPath, "assets", "backcard.png"),
+                Path.Combine(Application.StartupPath, "..", "..", "assets", "backcard.png")
+            };
+
+            foreach(var path in possiblePaths)
+            {
+                if (File.Exists(path))
+                {
+                    // Cargar la imagen y redimensionarla al tamaño estándar de las cartas
+                    Image originalImage = Image.FromFile(path);
+                    int cardWidth = 70;
+                    int cardHeight = 100;
+                    
+                    // Crear una nueva imagen redimensionada
+                    Bitmap resizedImage = new Bitmap(cardWidth, cardHeight);
+                    using (Graphics g = Graphics.FromImage(resizedImage))
+                    {
+                        g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                        g.DrawImage(originalImage, 0, 0, cardWidth, cardHeight);
+                    }
+                    
+                    // Liberar la imagen original
+                    originalImage.Dispose();
+                    
+                    // Cachear la imagen para uso futuro
+                    _cachedBackCardImage = resizedImage;
+                    
+                    return resizedImage;
                 }
             }
 
@@ -391,7 +446,7 @@ namespace TexasHoldem
                 }
                 
                 // Reposicionar labels
-                int rightSideX = this.ClientSize.Width - 280; // Movido a la izquierda unos 80 píxeles
+                int rightSideX = this.ClientSize.Width - 700; // Movido 200 píxeles a la izquierda desde el borde derecho
                 int rightSideY = this.ClientSize.Height / 2 - 150;
                 
                 if (lblPot != null) lblPot.Location = new Point(rightSideX, rightSideY);

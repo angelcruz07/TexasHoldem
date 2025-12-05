@@ -1,4 +1,6 @@
-﻿namespace TexasHoldem
+﻿using System.Windows.Forms;
+
+namespace TexasHoldem
 {
     partial class MesaDeJuegoForm
     {
@@ -38,11 +40,14 @@
             this.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("$this.BackgroundImage")));
             this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
             this.ClientSize = new System.Drawing.Size(800, 450);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.Sizable;
+            this.MaximizeBox = true;
+            this.MinimizeBox = true;
             this.Name = "MesaDeJuegoForm";
-            this.Text = "MesaDeJuegoForm";
+            this.Text = "Texas Hold'em - Mesa de Juego";
             this.WindowState = System.Windows.Forms.FormWindowState.Maximized;
             this.Load += new System.EventHandler(this.MesaDeJuegoForm_Load);
+            this.SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.DoubleBuffer | ControlStyles.ResizeRedraw, true);
             this.ResumeLayout(false);
 
         }
