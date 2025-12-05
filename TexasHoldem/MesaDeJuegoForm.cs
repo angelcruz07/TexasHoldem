@@ -23,6 +23,7 @@ namespace TexasHoldem
         private List<PictureBox> communityCardPbs = new List<PictureBox>();
         private List<PictureBox> playerCardPbs = new List<PictureBox>();
         private List<PictureBox> botCardPbs = new List<PictureBox>();
+        private PictureBox pbHandRankingsGuide;
         
         // Cache para la imagen de backcard (evita cargarla múltiples veces)
         private static Image _cachedBackCardImage = null;
@@ -107,6 +108,16 @@ namespace TexasHoldem
                 playerCardPbs.Add(pb);
             }
 
+            // Guía de rankings de póker - Esquina inferior derecha
+            pbHandRankingsGuide = new PictureBox();
+            pbHandRankingsGuide.Size = new Size(280, 400); // Tamaño más grande
+            pbHandRankingsGuide.Location = new Point(this.ClientSize.Width - 300, this.ClientSize.Height - 420); // Esquina inferior derecha con margen
+            pbHandRankingsGuide.SizeMode = PictureBoxSizeMode.Zoom; // Mantener proporción
+            pbHandRankingsGuide.BorderStyle = BorderStyle.FixedSingle;
+            pbHandRankingsGuide.BackColor = Color.White;
+            pbHandRankingsGuide.Image = GetHandRankingsImage();
+            this.Controls.Add(pbHandRankingsGuide);
+            
             // Labels - Esquina derecha en medio (un poco a la izquierda)
             int rightSideX = this.ClientSize.Width - 200; // Movido 200 píxeles a la izquierda desde el borde derecho
             int rightSideY = this.ClientSize.Height / 2 - 150; // Centro vertical menos offset
@@ -434,6 +445,26 @@ namespace TexasHoldem
             return null; // Imagen no encontrada
         }
 
+        private Image GetHandRankingsImage()
+        {
+            // Cargar la imagen de Poker-Hand-Rankings.png desde assets/
+            string[] possiblePaths = new string[]
+            {
+                Path.Combine(Application.StartupPath, "assets", "Poker-Hand-Rankings.png"),
+                Path.Combine(Application.StartupPath, "..", "..", "assets", "Poker-Hand-Rankings.png")
+            };
+
+            foreach(var path in possiblePaths)
+            {
+                if (File.Exists(path))
+                {
+                    return Image.FromFile(path);
+                }
+            }
+
+            return null; // Imagen no encontrada
+        }
+
         // Event Handlers
         private void BtnFold_Click(object sender, EventArgs e)
         {
@@ -525,6 +556,13 @@ namespace TexasHoldem
                 for (int i = 0; i < communityCardPbs.Count; i++)
                 {
                     communityCardPbs[i].Location = new Point(startX + (i * cardSpacing), startY);
+                }
+                
+                // Reposicionar guía de rankings (esquina inferior derecha)
+                if (pbHandRankingsGuide != null)
+                {
+                    pbHandRankingsGuide.Size = new Size(280, 400); // Tamaño más grande
+                    pbHandRankingsGuide.Location = new Point(this.ClientSize.Width - 300, this.ClientSize.Height - 420);
                 }
                 
                 // Reposicionar cartas del bot (parte superior)
