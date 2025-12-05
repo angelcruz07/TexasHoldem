@@ -22,9 +22,13 @@ namespace TexasHoldem
         private Button btnRaise;
         private List<PictureBox> communityCardPbs = new List<PictureBox>();
         private List<PictureBox> playerCardPbs = new List<PictureBox>();
+        private List<PictureBox> botCardPbs = new List<PictureBox>();
         
         // Cache para la imagen de backcard (evita cargarla múltiples veces)
         private static Image _cachedBackCardImage = null;
+        
+        // Flag para controlar si las cartas del bot deben mostrarse
+        private bool _shouldRevealBotCards = false;
 
         public MesaDeJuegoForm()
         {
@@ -69,6 +73,23 @@ namespace TexasHoldem
                 communityCardPbs.Add(pb);
             }
 
+            // Bot Cards - En la parte superior, centradas horizontalmente
+            int botCardY = 50; // Cerca de la parte superior
+            int botCardsWidth = (2 * cardWidth) + cardSpacing;
+            int botStartX = (this.ClientSize.Width - botCardsWidth) / 2;
+            
+            for (int i = 0; i < 2; i++)
+            {
+                PictureBox pb = new PictureBox();
+                pb.Size = new Size(cardWidth, cardHeight);
+                pb.Location = new Point(botStartX + (i * cardSpacing), botCardY);
+                pb.SizeMode = PictureBoxSizeMode.StretchImage;
+                pb.Image = GetBackCardImage(); // Inicialmente mostrar backcard
+                pb.BorderStyle = BorderStyle.FixedSingle;
+                this.Controls.Add(pb);
+                botCardPbs.Add(pb);
+            }
+            
             // Player Cards - Centradas horizontalmente
             int playerCardY = this.ClientSize.Height - 200; // Cerca del fondo
             int playerCardsWidth = (2 * cardWidth) + cardSpacing;
@@ -178,12 +199,22 @@ namespace TexasHoldem
                 {
                     this.Invoke(new Action(() => {
                         lblStatus.Text = $"Turno de: {playerName}";
+                        // Si el bot se retiró, revelar sus cartas
+                        if (_players.Count > 1 && _players[1].IsFolded)
+                        {
+                            _shouldRevealBotCards = true;
+                        }
                         UpdateUI();
                     }));
                 }
                 else
                 {
                     lblStatus.Text = $"Turno de: {playerName}";
+                    // Si el bot se retiró, revelar sus cartas
+                    if (_players.Count > 1 && _players[1].IsFolded)
+                    {
+                        _shouldRevealBotCards = true;
+                    }
                     UpdateUI();
                 }
             };
@@ -205,13 +236,35 @@ namespace TexasHoldem
                 if (this.InvokeRequired)
                 {
                     this.Invoke(new Action(() => {
+                        // Revelar cartas del bot cuando termina la ronda
+                        _shouldRevealBotCards = true;
+                        UpdateUI();
                         MessageBox.Show(result);
+                        // Resetear flag y ocultar cartas para la siguiente mano
+                        _shouldRevealBotCards = false;
+                        // Ocultar cartas del bot para la nueva mano
+                        if (botCardPbs.Count >= 2)
+                        {
+                            botCardPbs[0].Image = GetBackCardImage();
+                            botCardPbs[1].Image = GetBackCardImage();
+                        }
                         _gameEngine.StartGame(); // Auto start next hand for now
                     }));
                 }
                 else
                 {
+                    // Revelar cartas del bot cuando termina la ronda
+                    _shouldRevealBotCards = true;
+                    UpdateUI();
                     MessageBox.Show(result);
+                    // Resetear flag y ocultar cartas para la siguiente mano
+                    _shouldRevealBotCards = false;
+                    // Ocultar cartas del bot para la nueva mano
+                    if (botCardPbs.Count >= 2)
+                    {
+                        botCardPbs[0].Image = GetBackCardImage();
+                        botCardPbs[1].Image = GetBackCardImage();
+                    }
                     _gameEngine.StartGame(); // Auto start next hand for now
                 }
             };
@@ -238,15 +291,16 @@ namespace TexasHoldem
                 }
             }
 
-            // Obtener jugador humano (siempre el primero)
+            // Obtener jugadores
             Player humanPlayer = _players[0];
+            Player botPlayer = _players.Count > 1 ? _players[1] : null;
             Player current = _gameEngine.CurrentPlayer;
             
             // Mostrar info del jugador humano
             lblPlayerName.Text = $"{humanPlayer.Name} {(humanPlayer.IsFolded ? "(RETIRADO)" : "")}";
             lblPlayerChips.Text = $"Fichas: ${humanPlayer.Chips}";
 
-            // Mostrar cartas SOLO del jugador humano (nunca del bot)
+            // Mostrar cartas del jugador humano
             if (humanPlayer.HoleCards.Count >= 2)
             {
                 playerCardPbs[0].Image = GetCardImage(humanPlayer.HoleCards[0]);
@@ -256,6 +310,33 @@ namespace TexasHoldem
             {
                 playerCardPbs[0].Image = null;
                 playerCardPbs[1].Image = null;
+            }
+            
+            // Mostrar cartas del bot
+            if (botPlayer != null && botCardPbs.Count >= 2)
+            {
+                // Revelar cartas si:
+                // 1. El bot se retiró (folded)
+                // 2. El jugador humano se retiró (para mostrar qué tenía el bot)
+                // 3. Llegó al showdown (shouldRevealBotCards)
+                // 4. Es el turno del bot y está tomando una decisión importante
+                bool shouldReveal = _shouldRevealBotCards || 
+                                   botPlayer.IsFolded || 
+                                   humanPlayer.IsFolded ||
+                                   (_gameEngine.CurrentPhase == RoundPhase.Showdown);
+                
+                if (shouldReveal && botPlayer.HoleCards.Count >= 2)
+                {
+                    // Mostrar las cartas reales del bot
+                    botCardPbs[0].Image = GetCardImage(botPlayer.HoleCards[0]);
+                    botCardPbs[1].Image = GetCardImage(botPlayer.HoleCards[1]);
+                }
+                else
+                {
+                    // Mostrar backcard mientras las cartas están ocultas
+                    botCardPbs[0].Image = GetBackCardImage();
+                    botCardPbs[1].Image = GetBackCardImage();
+                }
             }
 
             // Button Logic - Solo habilitar si es turno del jugador humano
@@ -435,6 +516,7 @@ namespace TexasHoldem
             if (communityCardPbs.Count > 0)
             {
                 int cardWidth = 70;
+                int cardHeight = 100;
                 int cardSpacing = 80;
                 int totalCardsWidth = (5 * cardWidth) + (4 * cardSpacing);
                 int startX = (this.ClientSize.Width - totalCardsWidth) / 2 + 100;
@@ -443,6 +525,24 @@ namespace TexasHoldem
                 for (int i = 0; i < communityCardPbs.Count; i++)
                 {
                     communityCardPbs[i].Location = new Point(startX + (i * cardSpacing), startY);
+                }
+                
+                // Reposicionar cartas del bot (parte superior)
+                int botCardY = 50;
+                int botCardsWidth = (2 * cardWidth) + cardSpacing;
+                int botStartX = (this.ClientSize.Width - botCardsWidth) / 2;
+                for (int i = 0; i < botCardPbs.Count; i++)
+                {
+                    botCardPbs[i].Location = new Point(botStartX + (i * cardSpacing), botCardY);
+                }
+                
+                // Reposicionar cartas del jugador (parte inferior)
+                int playerCardY = this.ClientSize.Height - 200;
+                int playerCardsWidth = (2 * cardWidth) + cardSpacing;
+                int playerStartX = (this.ClientSize.Width - playerCardsWidth) / 2;
+                for (int i = 0; i < playerCardPbs.Count; i++)
+                {
+                    playerCardPbs[i].Location = new Point(playerStartX + (i * cardSpacing), playerCardY);
                 }
                 
                 // Reposicionar labels
