@@ -69,10 +69,16 @@ namespace TexasHoldem
             foreach (var p in _players)
             {
                 p.ResetForNewHand();
+                // Solo repartir cartas a jugadores con fichas
                 if (p.Chips > 0)
                 {
                     p.ReceiveCard(_deck.DealCard());
                     p.ReceiveCard(_deck.DealCard());
+                }
+                else
+                {
+                    // Si no tiene fichas, está fuera del juego
+                    p.Fold();
                 }
             }
 
@@ -110,36 +116,39 @@ namespace TexasHoldem
             {
                 case "fold":
                     player.Fold();
+                    _playersActedInRound++;
                     break;
                 case "check":
                     // Solo válido si CurrentBet == player.CurrentBet
+                    if (CurrentBet != player.CurrentBet)
+                    {
+                        // Invalid action, should call instead
+                        return;
+                    }
+                    _playersActedInRound++;
                     break;
                 case "call":
                     int callAmount = CurrentBet - player.CurrentBet;
-                    PlaceBet(player, callAmount);
+                    if (callAmount > 0)
+                    {
+                        PlaceBet(player, callAmount);
+                    }
+                    _playersActedInRound++;
                     break;
                 case "raise":
-                    // Raise to 'amount' (total bet)
-                    // Simplified: raise adds to pot and sets new CurrentBet
-                    // amount here is usually the TOTAL amount they want to put in? Or the ADDED amount?
-                    // Let's assume amount is the TOTAL bet they want to have.
-                    // But usually UI sends "Raise" and we calculate.
-                    // For simplicity: Raise means "Match current bet + Raise Amount"
-                    // Or "Make the bet X". Let's assume input 'amount' is the target total bet.
-                    if (amount > CurrentBet)
+                    // Raise: amount es el total que quiere apostar
+                    if (amount <= CurrentBet)
                     {
-                        int diff = amount - player.CurrentBet;
-                        PlaceBet(player, diff);
-                        CurrentBet = amount;
-                        // Al hacer raise, reiniciamos el conteo de quién ha igualado,
-                        // pero debemos tener cuidado con el loop.
-                        // Simplificación: Todos deben actuar de nuevo excepto el que hizo raise (si nadie más sube).
-                        _playersActedInRound = 0; 
+                        // Invalid raise amount, debe ser mayor que CurrentBet
+                        return;
                     }
+                    int raiseDiff = amount - player.CurrentBet;
+                    PlaceBet(player, raiseDiff);
+                    CurrentBet = amount;
+                    // Al hacer raise, reiniciamos el conteo porque otros deben responder
+                    _playersActedInRound = 1; // El que hizo raise ya actuó
                     break;
             }
-
-            _playersActedInRound++;
             
             // Actualizar UI inmediatamente después de la acción
             UpdateUI();
@@ -160,11 +169,19 @@ namespace TexasHoldem
             // La ronda termina cuando todos los jugadores activos han actuado Y sus apuestas son iguales al CurrentBet
             // O están All-In.
             
-            bool allBetsEqual = _players.Where(p => !p.IsFolded && !p.IsAllIn).All(p => p.CurrentBet == CurrentBet);
-            int activePlayers = _players.Count(p => !p.IsFolded && !p.IsAllIn); // Jugadores que aún pueden actuar
+            var activePlayers = _players.Where(p => !p.IsFolded && !p.IsAllIn).ToList();
+            var allInPlayers = _players.Where(p => !p.IsFolded && p.IsAllIn).ToList();
+            
+            // Verificar si todos los jugadores activos (no all-in) tienen la misma apuesta que CurrentBet
+            bool allBetsEqual = activePlayers.Count == 0 || 
+                               activePlayers.All(p => p.CurrentBet == CurrentBet);
+            
+            // Verificar si todos los jugadores activos han actuado en esta ronda
+            // Los jugadores all-in no necesitan actuar, pero deben haber igualado antes de ir all-in
+            bool allActed = activePlayers.Count == 0 || _playersActedInRound >= activePlayers.Count;
 
-            // Si todos actuaron y las apuestas están igualadas
-            if (allBetsEqual && _playersActedInRound >= activePlayers) 
+            // Si todos actuaron y las apuestas están igualadas (o todos están all-in)
+            if (allBetsEqual && allActed)
             {
                 NextPhase();
                 return;
@@ -267,27 +284,53 @@ namespace TexasHoldem
             {
                 // Ganador por fold
                 winner.Chips += Pot;
-                OnRoundEnded?.Invoke(this, $"{winner.Name} gana ${Pot} (otros se retiraron)");
+                OnRoundEnded?.Invoke(this, $"{winner.Name}|{Pot}|fold");
             }
             else
             {
-                // Showdown logic
-                // Aquí iría el HandEvaluator. Como no está implementado, le damos el bote al primero activo (dummy).
-                // TODO: Implementar HandEvaluator real.
-                var activePlayers = _players.Where(p => !p.IsFolded).ToList();
-                if (activePlayers.Count > 0)
+                // Showdown logic - Evaluar manos de todos los jugadores activos
+                var activePlayers = _players.Where(p => !p.IsFolded && p.HoleCards.Count == 2).ToList();
+                if (activePlayers.Count == 0)
                 {
-                    // Lógica temporal: Gana el azar o el primero
-                    Player showdownWinner = activePlayers[0]; 
-                    showdownWinner.Chips += Pot;
-                    OnRoundEnded?.Invoke(this, $"Showdown: {showdownWinner.Name} gana ${Pot}");
+                    // Si no hay jugadores activos, no hay ganador
+                    OnRoundEnded?.Invoke(this, "Empate|0|showdown");
+                    return;
+                }
+
+                // Evaluar la mejor mano de cada jugador
+                var playerHands = activePlayers.Select(p => new
+                {
+                    Player = p,
+                    Hand = HandEvaluator.EvaluateHand(p.HoleCards, CommunityCards)
+                }).ToList();
+
+                // Encontrar la mejor mano
+                var bestHand = playerHands.OrderByDescending(ph => ph.Hand).First();
+                var winners = playerHands.Where(ph => ph.Hand.CompareTo(bestHand.Hand) == 0).ToList();
+
+                if (winners.Count == 1)
+                {
+                    // Un solo ganador
+                    winners[0].Player.Chips += Pot;
+                    string handName = bestHand.Hand.GetHandName();
+                    OnRoundEnded?.Invoke(this, $"{winners[0].Player.Name}|{Pot}|showdown|{handName}");
+                }
+                else
+                {
+                    // Empate - dividir el bote
+                    int potPerPlayer = Pot / winners.Count;
+                    foreach (var w in winners)
+                    {
+                        w.Player.Chips += potPerPlayer;
+                    }
+                    string handName = bestHand.Hand.GetHandName();
+                    string winnersNames = string.Join(", ", winners.Select(w => w.Player.Name));
+                    OnRoundEnded?.Invoke(this, $"{winnersNames}|{potPerPlayer}|tie|{handName}");
                 }
             }
 
             // Preparar siguiente mano
             _dealerIndex = (_dealerIndex + 1) % _players.Count;
-            // Esperar un momento o pedir al usuario reiniciar?
-            // Dejamos que la UI llame a StartNewHand() cuando esté lista.
         }
 
         private int GetNextActivePlayerIndex(int startIndex)

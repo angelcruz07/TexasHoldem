@@ -250,7 +250,7 @@ namespace TexasHoldem
                         // Revelar cartas del bot cuando termina la ronda
                         _shouldRevealBotCards = true;
                         UpdateUI();
-                        MessageBox.Show(result);
+                        ShowWinnerDialog(result);
                         // Resetear flag y ocultar cartas para la siguiente mano
                         _shouldRevealBotCards = false;
                         // Ocultar cartas del bot para la nueva mano
@@ -267,7 +267,7 @@ namespace TexasHoldem
                     // Revelar cartas del bot cuando termina la ronda
                     _shouldRevealBotCards = true;
                     UpdateUI();
-                    MessageBox.Show(result);
+                    ShowWinnerDialog(result);
                     // Resetear flag y ocultar cartas para la siguiente mano
                     _shouldRevealBotCards = false;
                     // Ocultar cartas del bot para la nueva mano
@@ -286,7 +286,7 @@ namespace TexasHoldem
         private void UpdateUI()
         {
             // Pot
-            lblPot.Text = $"Bot: ${_gameEngine.Pot} (Apuesta actual: ${_gameEngine.CurrentBet})";
+            lblPot.Text = $"Bote: ${_gameEngine.Pot} (Apuesta actual: ${_gameEngine.CurrentBet})";
 
             // Community Cards
             var community = _gameEngine.CommunityCards;
@@ -518,9 +518,24 @@ namespace TexasHoldem
                 if (_gameEngine == null) return;
                 if (_gameEngine.IsCurrentPlayerAI) return;
                 
-                // Simple raise logic: Raise 2x current bet or min bet
-                int raiseAmount = _gameEngine.CurrentBet * 2; // Doble de la apuesta actual
-                if (raiseAmount < 40) raiseAmount = 40; // Absolute min
+                Player humanPlayer = _players[0];
+                int currentBet = _gameEngine.CurrentBet;
+                int playerCurrentBet = humanPlayer.CurrentBet;
+                int callAmount = currentBet - playerCurrentBet;
+                
+                // Raise mínimo: igualar + raise mínimo (2x la apuesta actual o mínimo 40)
+                int minRaise = Math.Max(currentBet * 2, 40);
+                int maxRaise = humanPlayer.Chips + playerCurrentBet; // Todo lo que tiene
+                
+                // Si el raise mínimo es mayor que lo que tiene, hacer all-in
+                if (minRaise > maxRaise)
+                {
+                    _gameEngine.ProcessAction("call", 0); // Solo igualar si no puede hacer raise mínimo
+                    return;
+                }
+                
+                // Calcular raise: mínimo entre minRaise y maxRaise
+                int raiseAmount = Math.Min(minRaise, maxRaise);
                 
                 _gameEngine.ProcessAction("raise", raiseAmount);
             }
@@ -603,6 +618,100 @@ namespace TexasHoldem
                 if (btnCall != null) btnCall.Location = new Point(btnStartX + 2 * (90 + btnSpacing), btnY);
                 if (btnRaise != null) btnRaise.Location = new Point(btnStartX + 3 * (90 + btnSpacing), btnY);
             }
+        }
+
+        private void ShowWinnerDialog(string result)
+        {
+            // Parsear el resultado: "Nombre|Pot|tipo|mano"
+            string[] parts = result.Split('|');
+            string winnerName = parts.Length > 0 ? parts[0] : "Desconocido";
+            string potStr = parts.Length > 1 ? parts[1] : "0";
+            string winType = parts.Length > 2 ? parts[2] : "showdown";
+            string handName = parts.Length > 3 ? parts[3] : "";
+
+            int pot = 0;
+            int.TryParse(potStr, out pot);
+
+            // Crear formulario personalizado para mostrar el ganador
+            Form winnerForm = new Form();
+            winnerForm.Text = "Resultado de la Mano";
+            winnerForm.Size = new Size(400, 250);
+            winnerForm.StartPosition = FormStartPosition.CenterParent;
+            winnerForm.FormBorderStyle = FormBorderStyle.FixedDialog;
+            winnerForm.MaximizeBox = false;
+            winnerForm.MinimizeBox = false;
+            winnerForm.ShowInTaskbar = false;
+
+            // Panel principal
+            Panel mainPanel = new Panel();
+            mainPanel.Dock = DockStyle.Fill;
+            mainPanel.BackColor = Color.FromArgb(30, 30, 30);
+
+            // Label del ganador
+            Label lblWinner = new Label();
+            lblWinner.Text = winType == "tie" ? "¡EMPATE!" : $"¡{winnerName} GANA!";
+            lblWinner.Font = new Font("Segoe UI", 24, FontStyle.Bold);
+            lblWinner.ForeColor = winType == "tie" ? Color.Gold : Color.LimeGreen;
+            lblWinner.AutoSize = false;
+            lblWinner.Size = new Size(380, 50);
+            lblWinner.Location = new Point(10, 20);
+            lblWinner.TextAlign = ContentAlignment.MiddleCenter;
+
+            // Label del bote
+            Label lblPot = new Label();
+            lblPot.Text = winType == "tie" ? $"Bote dividido: ${pot} cada uno" : $"Bote: ${pot}";
+            lblPot.Font = new Font("Segoe UI", 14, FontStyle.Regular);
+            lblPot.ForeColor = Color.White;
+            lblPot.AutoSize = false;
+            lblPot.Size = new Size(380, 30);
+            lblPot.Location = new Point(10, 80);
+            lblPot.TextAlign = ContentAlignment.MiddleCenter;
+
+            // Label del tipo de victoria
+            Label lblWinType = new Label();
+            if (winType == "fold")
+            {
+                lblWinType.Text = "Otros jugadores se retiraron";
+            }
+            else if (winType == "showdown")
+            {
+                lblWinType.Text = $"Mejor mano: {handName}";
+            }
+            else if (winType == "tie")
+            {
+                lblWinType.Text = $"Mejor mano: {handName}";
+            }
+            else
+            {
+                lblWinType.Text = "";
+            }
+            lblWinType.Font = new Font("Segoe UI", 12, FontStyle.Italic);
+            lblWinType.ForeColor = Color.LightGray;
+            lblWinType.AutoSize = false;
+            lblWinType.Size = new Size(380, 30);
+            lblWinType.Location = new Point(10, 120);
+            lblWinType.TextAlign = ContentAlignment.MiddleCenter;
+
+            // Botón OK
+            Button btnOK = new Button();
+            btnOK.Text = "Continuar";
+            btnOK.Size = new Size(120, 35);
+            btnOK.Location = new Point(140, 170);
+            btnOK.Font = new Font("Segoe UI", 11, FontStyle.Bold);
+            btnOK.BackColor = Color.FromArgb(0, 120, 215);
+            btnOK.ForeColor = Color.White;
+            btnOK.FlatStyle = FlatStyle.Flat;
+            btnOK.FlatAppearance.BorderSize = 0;
+            btnOK.DialogResult = DialogResult.OK;
+            btnOK.Click += (s, e) => winnerForm.Close();
+
+            mainPanel.Controls.Add(lblWinner);
+            mainPanel.Controls.Add(lblPot);
+            mainPanel.Controls.Add(lblWinType);
+            mainPanel.Controls.Add(btnOK);
+            winnerForm.Controls.Add(mainPanel);
+
+            winnerForm.ShowDialog(this);
         }
     }
 }
